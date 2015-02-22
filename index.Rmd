@@ -1,0 +1,101 @@
+---
+title: "Practical Machine Learning - Course Project"
+author: "Bruno Bandeira de Azevedo"
+date: "February 22, 2015"
+output: html_document
+---
+
+# Prediction of manner of exercise for device data
+
+We are going to analyse the data collected from activity device monitors in order to build a prediction on a person's exercise pattern. In this project we will attempt to predict if the person is doing said exercise in a corret manner, as opposed to doing it in a way that might not be as beneficial.
+
+# Exploratory Analysis
+
+First we will have to split what they say is the train set into yet another train set and test set. This will allow us to perform analysis on the new train set and evaluate how well our model is on our new test set. We have to know the data a bit better in order to make a educated prediction, so we shall take a look at the data first and make a few analysis. We are going to use random trees in our model since it already has cross-validation built into it, but we will still make a model using a separate test and train set just to see how it performs.
+
+
+```{r}
+library(plyr)
+library(caret)
+library(randomForest)
+library(RCurl)
+URLTrain<- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(URLTrain, destfile = "./train.csv", method="curl")
+URLTest<- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(URLTest, destfile = "./test.csv", method="curl")
+
+teDB<-read.csv("./test.csv", header=TRUE, na.strings = c("", " ","NA"))
+
+trDB<-read.csv("./train.csv", header=TRUE, na.strings = c("", " ","NA"))
+
+trainIndex <- createDataPartition(trDB$classe, p=0.70, list=FALSE)
+train <- trDB[ trainIndex,]
+test <- trDB[-trainIndex,]
+summary(trDB)
+```
+
+
+From this we can see that the data set is not clean at all, with several columns with a high amount of NA's or missing values. We need to take those values out of the train and test sets so we can make our predictions accordingly. We are going to attempt to fit the classe variable with all the remaining variables. We attempted several fits using a select amount of variables but it made the model harder to be comprehended, so we opted for model that was easier to understand. 
+
+
+
+```{r, echo=FALSE}
+filter<-!apply(train, 2, function(x) any(is.na(x)))
+
+train <- train[, filter]
+
+train <- train[,-c(1:7)]
+
+rforest<-randomForest(formula = classe ~ ., data = train, ntree = 500, na.action=na.roughfix)
+print(rforest)
+```
+
+The error rate obtained with this first model was approximately 0.6%, which suggests a 99,4% sample accuracy for the set. We do not need cross-validation since in random forests, we do not need a separate test set to get an unbiased estimate of the test set error, however we will do it here in order to show the prediction model working properly.
+
+Applying the random forest to our separate test set to check if the precision matches the one the random forest functiong gave us.
+
+```{r}
+pred<-predict(rforest,test)
+
+confusionMatrix(pred,test$classe)
+```
+
+We can see that we achieved an accuracy of around 0.9942 or 99,42%, which was expected from the randomForest we made.
+
+For a model using the entire data set we can achieve an even greater precision. We achieve an error rate of 0.31% and therefore an accuracy of 99.69%.
+
+
+```{r, echo=FALSE}
+train2 <- trDB
+
+filter<-!apply(train2, 2, function(x) any(is.na(x)))
+
+train2 <- train2[, filter]
+
+train2 <- train2[,-c(1:7)]
+
+rforest2<-randomForest(formula = classe ~ ., data = train2, ntree = 500, na.action=na.roughfix)
+print(rforest2)
+pred2<-predict(rforest2,test)
+
+confusionMatrix(pred2,test$classe)
+```
+
+It gave us an even higher accuracy, of 1, but since this would be overfitting, we would have to resample the data or have a different set to evaluate our predictions accordingly, so we chose to go with the first model.
+
+We are now going to apply the model we made to the original 20 observation test set and print its predictions.
+
+
+```{r}
+valtest<-teDB
+
+valtest <- valtest[, filter]
+
+valtest <- valtest[,-c(1:7)]
+
+predNew<-predict(rforest,valtest)
+table(predNew)
+print(predNew)
+```
+
+This model proved to be accurate with the submission part of the assignment and concludes this project.
