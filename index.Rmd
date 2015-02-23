@@ -14,7 +14,7 @@ We are going to analyse the data collected from activity device monitors in orde
 First we will have to split what they say is the train set into yet another train set and test set. This will allow us to perform analysis on the new train set and evaluate how well our model is on our new test set. We have to know the data a bit better in order to make a educated prediction, so we shall take a look at the data first and make a few analysis. We are going to use random trees in our model since it already has cross-validation built into it, but we will still make a model using a separate test and train set just to see how it performs.
 
 
-```{r}
+```{r, eval=FALSE}
 library(plyr)
 library(caret)
 library(randomForest)
@@ -31,12 +31,28 @@ trDB<-read.csv("./train.csv", header=TRUE, na.strings = c("", " ","NA"))
 trainIndex <- createDataPartition(trDB$classe, p=0.70, list=FALSE)
 train <- trDB[ trainIndex,]
 test <- trDB[-trainIndex,]
-summary(trDB)
 ```
 
+```{r, echo=FALSE}
+library(plyr)
+library(caret)
+library(randomForest)
+library(RCurl)
+URLTrain<- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(URLTrain, destfile = "./train.csv", method="curl")
+URLTest<- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(URLTest, destfile = "./test.csv", method="curl")
+
+teDB<-read.csv("./test.csv", header=TRUE, na.strings = c("", " ","NA"))
+
+trDB<-read.csv("./train.csv", header=TRUE, na.strings = c("", " ","NA"))
+
+trainIndex <- createDataPartition(trDB$classe, p=0.70, list=FALSE)
+train <- trDB[ trainIndex,]
+test <- trDB[-trainIndex,]
+```
 
 From this we can see that the data set is not clean at all, with several columns with a high amount of NA's or missing values. We need to take those values out of the train and test sets so we can make our predictions accordingly. We are going to attempt to fit the classe variable with all the remaining variables. We attempted several fits using a select amount of variables but it made the model harder to be comprehended, so we opted for model that was easier to understand. 
-
 
 
 ```{r, echo=FALSE}
